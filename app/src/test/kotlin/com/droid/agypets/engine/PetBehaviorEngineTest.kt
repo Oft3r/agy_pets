@@ -118,7 +118,8 @@ class PetBehaviorEngineTest {
 
     engine.onPoke()
 
-    assertEquals(PetState.IDLE, engine.currentState)
+    // When poked while sleeping, the mascot wakes up with surprise ALERT hop
+    assertEquals(PetState.ALERT, engine.currentState)
   }
 
   @Test
@@ -134,7 +135,13 @@ class PetBehaviorEngineTest {
     engine.setAgentWorking(true)
     assertEquals(PetState.WORKING, engine.currentState)
 
+    // When the agent finishes, the pet enters a victory CELEBRATE dance before walking
     engine.setAgentWorking(false)
+    assertEquals(PetState.CELEBRATE, engine.currentState)
+
+    // After celebrate ticks elapse, it returns to WALK
+    engine.celebrateTicksLeft = 1
+    engine.tick(randomVal = 0.5)
     assertEquals(PetState.WALK, engine.currentState)
   }
 

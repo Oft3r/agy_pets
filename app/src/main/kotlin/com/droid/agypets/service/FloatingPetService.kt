@@ -172,7 +172,7 @@ class FloatingPetService : Service() {
         if (prefs.liveTrackingEnabled) {
           usageRepo.refresh()
         }
-        delay(5000L)
+        delay(1500L) // 1.5s interval for responsive agent working / celebration reactions
       }
     }
 

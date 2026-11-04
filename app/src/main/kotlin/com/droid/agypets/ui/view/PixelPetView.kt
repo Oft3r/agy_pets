@@ -94,6 +94,11 @@ class PixelPetView @JvmOverloads constructor(
       PetState.WORKING -> if (animFrame % 2 == 1) -1 else 0
       PetState.IDLE -> if ((tickCount % 60) > 30) -1 else 0
       PetState.FLOAT, PetState.DRAGGING -> if ((tickCount % 20) > 10) -1 else 0
+      PetState.ALERT -> -2
+      PetState.CELEBRATE -> {
+        val p = (tickCount % 16).toInt()
+        if (p in 0..3) -2 else if (p in 4..7) -4 else if (p in 8..11) -2 else 0
+      }
       else -> 0
     }
 
@@ -151,21 +156,110 @@ class PixelPetView @JvmOverloads constructor(
         drawPx(7, 6 + bob, cBlush)
         drawPx(12, 6 + bob, cBlush)
       }
+      PetState.ALERT -> {
+        // Surprised / Attention eyes + exclamation mark bubble!
+        drawPx(eyeLeftX, eyeY, cDarkEye)
+        drawPx(eyeLeftX, eyeY - 1, cWhite)
+        drawPx(eyeRightX, eyeY, cDarkEye)
+        drawPx(eyeRightX, eyeY - 1, cWhite)
+        drawPx(9, 6 + bob, cDarkEye)
+        drawPx(10, 6 + bob, cDarkEye)
+        // Exclamation mark '!' above apex
+        drawPx(10, 0 + bob, Color.parseColor("#FBBF24"))
+        drawPx(10, 1 + bob, Color.parseColor("#FBBF24"))
+        drawPx(10, 2 + bob, Color.parseColor("#FBBF24"))
+      }
+      PetState.CELEBRATE -> {
+        // Happy victory eyes (^ ^) + open smile + blush!
+        drawPx(eyeLeftX - 1, eyeY, cDarkEye)
+        drawPx(eyeLeftX, eyeY - 1, cDarkEye)
+        drawPx(eyeLeftX + 1, eyeY, cDarkEye)
+        drawPx(eyeRightX - 1, eyeY, cDarkEye)
+        drawPx(eyeRightX, eyeY - 1, cDarkEye)
+        drawPx(eyeRightX + 1, eyeY, cDarkEye)
+        drawPx(9, 6 + bob, cDarkEye)
+        drawPx(10, 6 + bob, cDarkEye)
+        drawPx(7, 6 + bob, cBlush)
+        drawPx(12, 6 + bob, cBlush)
+
+        // Celebration Sparkles / Stars bursting around the mascot
+        val sCycle = (tickCount % 20).toInt()
+        if (sCycle in 0..9) {
+          drawPx(3, 2 + bob, Color.parseColor("#FBBF24"))
+          drawPx(16, 3 + bob, Color.parseColor("#38BDF8"))
+          drawPx(10, 0 + bob, Color.WHITE)
+        } else {
+          drawPx(4, 4 + bob, Color.parseColor("#38BDF8"))
+          drawPx(15, 1 + bob, Color.parseColor("#FBBF24"))
+          drawPx(9, 1 + bob, Color.WHITE)
+        }
+      }
       PetState.SLEEP -> {
+        // Closed horizontal eyes
         drawPx(eyeLeftX, eyeY, cDarkEye)
         drawPx(eyeLeftX - 1, eyeY, cDarkEye)
         drawPx(eyeRightX, eyeY, cDarkEye)
         drawPx(eyeRightX + 1, eyeY, cDarkEye)
         drawPx(7, 6 + bob, cBlush)
         drawPx(12, 6 + bob, cBlush)
+
+        // Floating pixel art Zzz drifting upward!
+        val zPhase = (tickCount % 75).toInt()
+        val zYShift = (zPhase / 15)
+        val zXShift = (zPhase / 20)
+        val zBaseX = 14 + zXShift
+        val zBaseY = 2 - zYShift + bob
+
+        // Draw primary 'Z' (3x3 pixels)
+        val zCol = Color.parseColor("#A78BFA")
+        drawPx(zBaseX, zBaseY, zCol)
+        drawPx(zBaseX + 1, zBaseY, zCol)
+        drawPx(zBaseX + 2, zBaseY, zCol)
+        drawPx(zBaseX + 1, zBaseY + 1, zCol)
+        drawPx(zBaseX, zBaseY + 2, zCol)
+        drawPx(zBaseX + 1, zBaseY + 2, zCol)
+        drawPx(zBaseX + 2, zBaseY + 2, zCol)
+
+        // Secondary smaller 'z' trailing behind
+        if (zPhase > 25) {
+          val z2X = 12 + ((zPhase - 25) / 25)
+          val z2Y = 4 - ((zPhase - 25) / 18) + bob
+          val z2Col = Color.parseColor("#C4B5FD")
+          drawPx(z2X, z2Y, z2Col)
+          drawPx(z2X + 1, z2Y, z2Col)
+          drawPx(z2X + 1, z2Y + 1, z2Col)
+          drawPx(z2X, z2Y + 1, z2Col)
+        }
       }
       PetState.SIT -> {
+        // Relaxed resting sitting pose
         drawPx(eyeLeftX - 1, eyeY, cDarkEye)
         drawPx(eyeLeftX, eyeY - 1, cDarkEye)
         drawPx(eyeRightX, eyeY - 1, cDarkEye)
         drawPx(eyeRightX + 1, eyeY, cDarkEye)
         drawPx(9, 6 + bob, cDarkEye)
         drawPx(10, 6 + bob, cDarkEye)
+        drawPx(7, 6 + bob, cBlush)
+        drawPx(12, 6 + bob, cBlush)
+      }
+      PetState.IDLE -> {
+        // Curious looking around! Looks left, center, right, and blinks
+        val lookPhase = ((tickCount / 40) % 4).toInt()
+        val lookShiftX = when (lookPhase) {
+          1 -> -1 // Look left
+          3 -> 1  // Look right
+          else -> 0 // Center
+        }
+        val blink = (tickCount % 80) > 75
+        if (blink && lookPhase != 1 && lookPhase != 3) {
+          drawPx(eyeLeftX, eyeY, cDarkEye)
+          drawPx(eyeRightX, eyeY, cDarkEye)
+        } else {
+          drawPx(eyeLeftX + lookShiftX, eyeY, cDarkEye)
+          drawPx(eyeLeftX + lookShiftX, eyeY - 1, cWhite)
+          drawPx(eyeRightX + lookShiftX, eyeY, cDarkEye)
+          drawPx(eyeRightX + lookShiftX, eyeY - 1, cWhite)
+        }
         drawPx(7, 6 + bob, cBlush)
         drawPx(12, 6 + bob, cBlush)
       }
@@ -182,6 +276,7 @@ class PixelPetView @JvmOverloads constructor(
         drawPx(10, 6 + bob, cDarkEye)
       }
       else -> {
+        // WALK
         val blink = (tickCount % 90) > 85
         if (blink) {
           drawPx(eyeLeftX, eyeY, cDarkEye)
@@ -197,10 +292,11 @@ class PixelPetView @JvmOverloads constructor(
       }
     }
 
-    // High Quota Sweat Bead (like Clawd in clawd-usage-gnome)
+    // High Quota Sweat Bead (animated dripping when quota >= 80%)
     if (contextUsagePercent >= 80) {
-      drawPx(13, 3 + bob, Color.parseColor("#38bdf8"))
-      drawPx(13, 4 + bob, Color.parseColor("#0284c7"))
+      val dripOffset = ((tickCount / 12) % 3).toInt()
+      drawPx(13, 3 + dripOffset + bob, Color.parseColor("#38BDF8"))
+      drawPx(13, 4 + dripOffset + bob, Color.parseColor("#0284C7"))
     }
 
     // 4. Feet Walk & Float Mechanics at base prongs
@@ -233,6 +329,23 @@ class PixelPetView @JvmOverloads constructor(
         drawPx(14, 13 + bob, Color.parseColor("#4338ca"))
         drawPx(15, 13 + bob, Color.parseColor("#4338ca"))
       }
+    } else if (currentState == PetState.CELEBRATE) {
+      if (animFrame % 2 == 0) {
+        drawPx(4, 12 + bob, Color.parseColor("#0284c7"))
+        drawPx(5, 12 + bob, Color.parseColor("#0284c7"))
+        drawPx(14, 14 + bob, Color.parseColor("#4338ca"))
+        drawPx(15, 14 + bob, Color.parseColor("#4338ca"))
+      } else {
+        drawPx(4, 14 + bob, Color.parseColor("#0284c7"))
+        drawPx(5, 14 + bob, Color.parseColor("#0284c7"))
+        drawPx(14, 12 + bob, Color.parseColor("#4338ca"))
+        drawPx(15, 12 + bob, Color.parseColor("#4338ca"))
+      }
+    } else if (currentState == PetState.ALERT) {
+      drawPx(4, 13 + bob, Color.parseColor("#0284c7"))
+      drawPx(5, 13 + bob, Color.parseColor("#0284c7"))
+      drawPx(14, 13 + bob, Color.parseColor("#4338ca"))
+      drawPx(15, 13 + bob, Color.parseColor("#4338ca"))
     } else if (currentState == PetState.SIT || currentState == PetState.SLEEP) {
       drawPx(4, 12, Color.parseColor("#0284c7"))
       drawPx(5, 12, Color.parseColor("#0284c7"))
