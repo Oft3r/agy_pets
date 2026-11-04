@@ -1,0 +1,10 @@
+[Unit]
+Description=Antigravity quota sync + heartbeat for AgyPets
+
+[Service]
+ExecStart=/usr/bin/python3 /storage/emulated/10/Documents/Projects/.gemini/antigravity/sync_usage.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
