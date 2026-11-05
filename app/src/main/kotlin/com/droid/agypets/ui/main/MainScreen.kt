@@ -8,6 +8,7 @@ import android.os.Environment
 import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -910,8 +911,16 @@ internal fun MainScreenContent(
 
           // Size Chips
           Text(text = "Mascot Size", fontSize = 14.sp, color = Color.White)
-          Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(1.5f to "Small", 2.0f to "Normal", 3.0f to "Large").forEach { (sc, label) ->
+          Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.horizontalScroll(rememberScrollState())
+          ) {
+            listOf(
+              1.0f to "Extra Small",
+              1.5f to "Small",
+              2.0f to "Normal",
+              3.0f to "Large"
+            ).forEach { (sc, label) ->
               FilterChip(
                 selected = Math.abs(settings.petScale - sc) < 0.1f,
                 onClick = { onScaleChange(sc) },

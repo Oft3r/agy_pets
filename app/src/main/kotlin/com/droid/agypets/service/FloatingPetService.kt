@@ -456,8 +456,8 @@ class FloatingPetService : Service() {
     val (screenWidth, screenHeight) = getTrueScreenDimensions()
     val density = Resources.getSystem().displayMetrics.density.coerceAtLeast(1.0f)
 
-    val scale = prefs.petScale.coerceIn(1.0f, 4.0f)
-    val petSizePx = (64 * scale * density).toInt().coerceIn(80, 360)
+    val scale = prefs.petScale.coerceIn(0.6f, 4.0f)
+    val petSizePx = (64 * scale * density).toInt().coerceIn(48, 360)
     val taskbarOffset = (52 * density).toInt()
     val groundY = (screenHeight - petSizePx - taskbarOffset).toFloat().coerceAtLeast(100f)
 
@@ -772,8 +772,8 @@ class FloatingPetService : Service() {
     val (screenWidth, screenHeight) = getTrueScreenDimensions()
     val density = Resources.getSystem().displayMetrics.density.coerceAtLeast(1.0f)
 
-    val scale = prefs.petScale.coerceIn(1.0f, 4.0f)
-    val petSizePx = (64 * scale * density).toInt().coerceIn(80, 360)
+    val scale = prefs.petScale.coerceIn(0.6f, 4.0f)
+    val petSizePx = (64 * scale * density).toInt().coerceIn(48, 360)
     val taskbarOffset = (52 * density).toInt()
 
     eng.screenWidth = maxOf(eng.screenWidth, screenWidth)
