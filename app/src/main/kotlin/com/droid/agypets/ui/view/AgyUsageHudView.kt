@@ -5,8 +5,8 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
-import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.ScrollView
@@ -17,7 +17,6 @@ import java.util.Locale
 
 class AgyUsageHudView(
   context: Context,
-  private val onRefreshClicked: () -> Unit,
   private val onCloseClicked: () -> Unit
 ) : LinearLayout(context) {
 
@@ -188,23 +187,22 @@ class AgyUsageHudView(
 
     scrollView.addView(scrollContent)
     addView(scrollView)
+  }
 
-    // Bottom Action Row: Refresh Button
-    val btnRefresh = Button(context).apply {
-      text = "Refresh Quotas 🔄"
-      setTextColor(Color.WHITE)
-      textSize = 11f
-      val btnBg = GradientDrawable().apply {
-        setColor(Color.parseColor("#0284C7"))
-        cornerRadius = 8 * density
-      }
-      background = btnBg
-      layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, (36 * density).toInt()).apply {
-        topMargin = (6 * density).toInt()
-      }
-      setOnClickListener { onRefreshClicked() }
+  override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+    if (ev.action == MotionEvent.ACTION_OUTSIDE) {
+      onCloseClicked()
+      return true
     }
-    addView(btnRefresh)
+    return super.dispatchTouchEvent(ev)
+  }
+
+  override fun onTouchEvent(event: MotionEvent): Boolean {
+    if (event.action == MotionEvent.ACTION_OUTSIDE) {
+      onCloseClicked()
+      return true
+    }
+    return super.onTouchEvent(event)
   }
 
   private fun renderGroups(groups: List<QuotaGroupItem>, activeGroupName: String) {

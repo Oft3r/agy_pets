@@ -61,6 +61,7 @@ class FloatingPetService : Service() {
   private var hudView: AgyUsageHudView? = null
   private var hudParams: WindowManager.LayoutParams? = null
   private var isHudVisible = false
+  private var lastHudDismissTime = 0L
 
   // Black hole show/hide transition
   private var blackHoleView: BlackHoleView? = null
@@ -543,7 +544,9 @@ class FloatingPetService : Service() {
     if (pillView != null) return
 
     pillView = AgyStatusPillView(this) {
-      toggleHud()
+      if (System.currentTimeMillis() - lastHudDismissTime > 350L) {
+        toggleHud()
+      }
     }.apply {
       updateData(currentUsage)
     }
@@ -579,7 +582,7 @@ class FloatingPetService : Service() {
 
   private fun calculateHudCoords(eng: PetBehaviorEngine, hudWidth: Int, density: Float): Pair<Int, Int> {
     val (screenWidth, screenHeight) = getTrueScreenDimensions()
-    val estimatedHudHeight = (330 * density).toInt()
+    val estimatedHudHeight = (290 * density).toInt()
 
     // Center horizontally on the pet
     val idealX = (eng.x + (eng.petWidth / 2f) - (hudWidth / 2f)).toInt()
@@ -627,16 +630,19 @@ class FloatingPetService : Service() {
 
     hudView = AgyUsageHudView(
       context = this,
-      onRefreshClicked = {
-        serviceScope.launch {
-          usageRepo.refresh()
-        }
-      },
       onCloseClicked = {
         hideHud()
       }
     ).apply {
       updateData(currentUsage)
+      setOnTouchListener { _, event ->
+        if (event.action == MotionEvent.ACTION_OUTSIDE) {
+          hideHud()
+          true
+        } else {
+          false
+        }
+      }
     }
 
     // Dynamic placement anchored directly above the pet!
@@ -646,7 +652,9 @@ class FloatingPetService : Service() {
       hudWidth,
       WindowManager.LayoutParams.WRAP_CONTENT,
       WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-      WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+      WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+          WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+          WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
           WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
       PixelFormat.TRANSLUCENT
     ).apply {
@@ -665,6 +673,7 @@ class FloatingPetService : Service() {
 
   private fun hideHud() {
     if (!isHudVisible) return
+    lastHudDismissTime = System.currentTimeMillis()
     try {
       hudView?.let { v ->
         if (v.isAttachedToWindow) {
@@ -742,7 +751,9 @@ class FloatingPetService : Service() {
         if (duration < 300 && dist < 24) {
           // Quick Tap! Toggles the Usage & Quota HUD and pokes pet
           eng.onPoke()
-          toggleHud()
+          if (System.currentTimeMillis() - lastHudDismissTime > 350L) {
+            toggleHud()
+          }
         } else {
           val tossVx = (event.rawX - lastMoveX) * 0.4f
           val tossVy = (event.rawY - lastMoveY) * 0.4f
