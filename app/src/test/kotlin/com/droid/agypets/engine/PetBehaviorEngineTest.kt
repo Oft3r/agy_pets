@@ -123,6 +123,69 @@ class PetBehaviorEngineTest {
   }
 
   @Test
+  fun quickTapAfterStartDrag_doesNotFreezeInDragging() {
+    val engine = PetBehaviorEngine(
+      screenWidth = 1000,
+      screenHeight = 800,
+      petWidth = 80,
+      groundY = 720f
+    )
+    // Simulate ACTION_DOWN calling onStartDrag followed by ACTION_UP quick tap calling onPoke
+    engine.onStartDrag(460f, 720f)
+    engine.onPoke()
+
+    // Must not remain frozen in DRAGGING state
+    assertTrue(engine.currentState != PetState.DRAGGING)
+    assertEquals(PetState.ALERT, engine.currentState)
+
+    // After the brief alert hop completes, it resumes normal walking
+    repeat(25) { engine.tick(randomVal = 0.5) }
+    assertEquals(PetState.WALK, engine.currentState)
+    assertTrue(Math.abs(engine.vx) >= 1.5f)
+  }
+
+  @Test
+  fun pokeWhileAgentWorking_resumesWorkingAfterAlert() {
+    val engine = PetBehaviorEngine(
+      screenWidth = 1000,
+      screenHeight = 800,
+      petWidth = 80,
+      groundY = 720f
+    )
+    engine.setAgentWorking(true)
+    assertEquals(PetState.WORKING, engine.currentState)
+
+    // User clicks mascot to open usage capsule while Antigravity is working
+    engine.onStartDrag(460f, 720f)
+    engine.onPoke()
+
+    assertEquals(PetState.ALERT, engine.currentState)
+
+    // After brief alert hop, mascot must resume WORKING and moving horizontally
+    val startX = engine.x
+    repeat(30) { engine.tick(randomVal = 0.5) }
+    assertEquals(PetState.WORKING, engine.currentState)
+    assertTrue(engine.x != startX)
+  }
+
+  @Test
+  fun releaseWithZeroVelocity_restoresWalkingSpeedAndAgentState() {
+    val engine = PetBehaviorEngine(
+      screenWidth = 1000,
+      screenHeight = 800,
+      petWidth = 80,
+      groundY = 720f,
+      zeroGravity = false
+    )
+    engine.setAgentWorking(true)
+    engine.onStartDrag(400f, 720f)
+    engine.onRelease(tossVx = 0f, tossVy = 0f)
+
+    assertEquals(PetState.WORKING, engine.currentState)
+    assertTrue(Math.abs(engine.vx) >= 1.5f)
+  }
+
+  @Test
   fun setAgentWorking_transitionsStateCorrectly() {
     val engine = PetBehaviorEngine(
       screenWidth = 1000,

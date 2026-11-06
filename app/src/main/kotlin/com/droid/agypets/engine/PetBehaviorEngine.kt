@@ -48,6 +48,15 @@ data class PetBehaviorEngine(
   private var currentIdleTargetTicks: Int = 210 // ~7 seconds
   private var currentSitTargetTicks: Int = 300  // ~10 seconds
 
+  private fun ensureWalkingVelocity() {
+    if (Math.abs(vx) < 1.5f) {
+      vx = if (direction == Direction.RIGHT) 2.0f else -2.0f
+    } else {
+      vx = if (vx > 0f) 2.0f else -2.0f
+      direction = if (vx > 0f) Direction.RIGHT else Direction.LEFT
+    }
+  }
+
   fun tick(randomVal: Double = Math.random()) {
     stateTicks++
     if (!isAgentActive && currentState != PetState.DRAGGING) {
@@ -62,6 +71,7 @@ data class PetBehaviorEngine(
         alertTicksLeft--
         if (alertTicksLeft <= 0) {
           stateTicks = 0
+          ensureWalkingVelocity()
           currentState = if (isAgentActive) PetState.WORKING else PetState.WALK
         }
       }
@@ -74,11 +84,20 @@ data class PetBehaviorEngine(
         }
         if (celebrateTicksLeft <= 0) {
           stateTicks = 0
-          currentState = PetState.WALK
+          ensureWalkingVelocity()
+          currentState = if (isAgentActive) PetState.WORKING else PetState.WALK
         }
       }
 
       PetState.WALK -> {
+        if (isAgentActive) {
+          ensureWalkingVelocity()
+          currentState = PetState.WORKING
+          stateTicks = 0
+        }
+        if (Math.abs(vx) < 1.5f) {
+          ensureWalkingVelocity()
+        }
         x += vx * speedMultiplier
         if (stateTicks % 10 == 0) {
           animFrame = (animFrame + 1) % 4
@@ -96,7 +115,7 @@ data class PetBehaviorEngine(
         }
 
         // Natural pause: after walking a while, stop and observe (IDLE)
-        if (stateTicks >= currentWalkTargetTicks) {
+        if (!isAgentActive && stateTicks >= currentWalkTargetTicks) {
           currentState = PetState.IDLE
           stateTicks = 0
           currentIdleTargetTicks = 180 + (randomVal * 120).toInt() // 6 - 10s
@@ -104,6 +123,9 @@ data class PetBehaviorEngine(
       }
 
       PetState.WORKING -> {
+        if (Math.abs(vx) < 1.5f) {
+          ensureWalkingVelocity()
+        }
         // Fast, energetic pacing with focused concentration
         x += (vx * 0.75f) * speedMultiplier
         if (stateTicks % 5 == 0) {
@@ -125,7 +147,10 @@ data class PetBehaviorEngine(
         // Standing still, looking around curiously
         if (stateTicks >= currentIdleTargetTicks) {
           stateTicks = 0
-          if (inactivityTicks >= 900) { // >30s of system inactivity -> sit down
+          if (isAgentActive) {
+            ensureWalkingVelocity()
+            currentState = PetState.WORKING
+          } else if (inactivityTicks >= 900) { // >30s of system inactivity -> sit down
             currentState = PetState.SIT
             currentSitTargetTicks = 300 + (randomVal * 150).toInt() // 10 - 15s
           } else {
@@ -149,10 +174,14 @@ data class PetBehaviorEngine(
         // Sitting relaxed on the floor
         if (stateTicks >= currentSitTargetTicks) {
           stateTicks = 0
-          // If the computer has been quiet for > 45 seconds total, fall asleep!
-          if (inactivityTicks >= 1350) {
+          if (isAgentActive) {
+            ensureWalkingVelocity()
+            currentState = PetState.WORKING
+          } else if (inactivityTicks >= 1350) {
+            // If the computer has been quiet for > 45 seconds total, fall asleep!
             currentState = PetState.SLEEP
           } else {
+            ensureWalkingVelocity()
             currentState = PetState.WALK
             currentWalkTargetTicks = 300 + (randomVal * 180).toInt()
           }
@@ -196,7 +225,8 @@ data class PetBehaviorEngine(
         if (y >= groundY) {
           y = groundY
           vy = 0f
-          currentState = PetState.WALK
+          ensureWalkingVelocity()
+          currentState = if (isAgentActive) PetState.WORKING else PetState.WALK
           stateTicks = 0
           currentWalkTargetTicks = 300
         }
@@ -209,9 +239,14 @@ data class PetBehaviorEngine(
         if (y >= groundY) {
           y = groundY
           vy = 0f
-          currentState = PetState.IDLE
           stateTicks = 0
-          currentIdleTargetTicks = 120
+          if (isAgentActive) {
+            ensureWalkingVelocity()
+            currentState = PetState.WORKING
+          } else {
+            currentState = PetState.IDLE
+            currentIdleTargetTicks = 120
+          }
         }
       }
 
@@ -228,18 +263,23 @@ data class PetBehaviorEngine(
     }
 
     if (working) {
+      inactivityTicks = 0L
       if (!isAgentActive) {
         isAgentActive = true
-        inactivityTicks = 0L
         // If waking up from sleep, sitting or idle: alert hop first!
         if (currentState == PetState.SLEEP || currentState == PetState.SIT || currentState == PetState.IDLE) {
           currentState = PetState.ALERT
           alertTicksLeft = 24 // ~0.8s surprise hop
           stateTicks = 0
-        } else {
+        } else if (currentState != PetState.FLOAT && currentState != PetState.FALL && currentState != PetState.ALERT) {
+          ensureWalkingVelocity()
           currentState = PetState.WORKING
           stateTicks = 0
         }
+      } else if (currentState == PetState.WALK || currentState == PetState.IDLE || currentState == PetState.SIT || currentState == PetState.SLEEP) {
+        ensureWalkingVelocity()
+        currentState = PetState.WORKING
+        stateTicks = 0
       }
     } else {
       if (isAgentActive) {
@@ -249,7 +289,8 @@ data class PetBehaviorEngine(
           currentState = PetState.CELEBRATE
           celebrateTicksLeft = 90 // 3 seconds of victory bounce + sparkles
           stateTicks = 0
-        } else {
+        } else if (currentState != PetState.FLOAT && currentState != PetState.FALL) {
+          ensureWalkingVelocity()
           currentState = PetState.WALK
           stateTicks = 0
         }
@@ -278,13 +319,20 @@ data class PetBehaviorEngine(
       vx = tossVx.coerceIn(-25f, 25f)
       vy = tossVy.coerceIn(-25f, 25f)
 
-      if (zeroGravity) {
-        currentState = PetState.FLOAT
-        if (Math.abs(vy) < 1f && y < groundY - 50) {
-          vy = -3f
+      if (y < groundY - 10 || (zeroGravity && vy < -2f)) {
+        if (zeroGravity) {
+          currentState = PetState.FLOAT
+          if (Math.abs(vy) < 1f && y < groundY - 50) {
+            vy = -3f
+          }
+        } else {
+          currentState = PetState.FALL
         }
       } else {
-        currentState = if (y < groundY - 10) PetState.FALL else PetState.WALK
+        y = groundY
+        vy = 0f
+        ensureWalkingVelocity()
+        currentState = if (isAgentActive) PetState.WORKING else PetState.WALK
       }
       stateTicks = 0
     }
@@ -292,21 +340,14 @@ data class PetBehaviorEngine(
 
   fun onPoke() {
     inactivityTicks = 0L
-    if (currentState == PetState.DRAGGING) return
-
-    if (currentState == PetState.SLEEP) {
-      // Poke wakes pet up with surprise alert!
-      currentState = PetState.ALERT
-      alertTicksLeft = 24
-    } else if (zeroGravity) {
-      currentState = PetState.FLOAT
-      vy = -12f
-      vx = (Math.random() * 8 - 4).toFloat()
-    } else {
-      currentState = PetState.WALK
-      vx = -vx
-      direction = if (direction == Direction.RIGHT) Direction.LEFT else Direction.RIGHT
+    if (y >= groundY - 10f) {
+      y = groundY
+      vy = 0f
     }
+    direction = if (direction == Direction.RIGHT) Direction.LEFT else Direction.RIGHT
+    ensureWalkingVelocity()
+    currentState = PetState.ALERT
+    alertTicksLeft = 18
     stateTicks = 0
   }
 }

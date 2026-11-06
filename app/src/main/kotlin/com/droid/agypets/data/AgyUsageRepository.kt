@@ -448,12 +448,12 @@ class AgyUsageRepository(private val context: Context) {
               val lastMod = c.getString(5) ?: ""
 
               totalSteps += steps
-              val running = (status == "CASCADE_RUN_STATUS_RUNNING" || notIdle)
+              val running = (status.contains("RUNNING", ignoreCase = true) || notIdle)
 
               if (isFirst) {
                 activeId = id
                 activeTitle = title
-                isRunning = running
+                isRunning = running || snapRunning
                 activeSteps = steps
                 isFirst = false
               }
@@ -510,6 +510,9 @@ class AgyUsageRepository(private val context: Context) {
               outTokens = readOut
               cacheTokens = readCache
               activeContextTokens = readCtx
+            }
+            if (now - transcriptFile.lastModified() < 12_000L) {
+              isRunning = true
             }
           }
         }

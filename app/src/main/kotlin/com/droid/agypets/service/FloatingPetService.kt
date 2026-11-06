@@ -84,6 +84,7 @@ class FloatingPetService : Service() {
   private var lastMoveX = 0f
   private var lastMoveY = 0f
   private var touchDownTime = 0L
+  private var isDraggingTouch = false
 
   private val tickRunnable = object : Runnable {
     override fun run() {
@@ -125,11 +126,6 @@ class FloatingPetService : Service() {
               } catch (e: Exception) {}
             }
           }
-        }
-
-        // If HUD is visible, keep it smoothly anchored above the pet!
-        if (isHudVisible && hudView != null && hudParams != null) {
-          updateHudPosition(eng)
         }
 
         petView?.updateAnimation(
@@ -691,7 +687,7 @@ class FloatingPetService : Service() {
     val params = layoutParams ?: return false
     val density = Resources.getSystem().displayMetrics.density.coerceAtLeast(1.0f)
 
-    when (event.action) {
+    when (event.actionMasked) {
       MotionEvent.ACTION_DOWN -> {
         touchDownTime = System.currentTimeMillis()
         touchDownX = event.rawX
@@ -700,6 +696,7 @@ class FloatingPetService : Service() {
         lastMoveY = event.rawY
         initialPetX = params.x
         initialPetY = params.y
+        isDraggingTouch = false
 
         if (event.rawX > eng.screenWidth) {
           eng.screenWidth = event.rawX.toInt() + eng.petWidth
@@ -708,33 +705,38 @@ class FloatingPetService : Service() {
           eng.screenHeight = event.rawY.toInt() + eng.petWidth
           eng.groundY = (eng.screenHeight - eng.petWidth - (52 * density).toInt()).toFloat()
         }
-
-        eng.onStartDrag(params.x.toFloat(), params.y.toFloat())
-        petView?.updateAnimation(eng.currentState, eng.direction, 0, tickCount, currentUsage.activePrimaryUsedPercent)
         return true
       }
 
       MotionEvent.ACTION_MOVE -> {
         val dx = event.rawX - touchDownX
         val dy = event.rawY - touchDownY
+        val dist = Math.hypot(dx.toDouble(), dy.toDouble())
 
-        if (event.rawX > eng.screenWidth - 50) {
-          eng.screenWidth = (event.rawX + eng.petWidth + 100).toInt()
-        }
-        if (event.rawY > eng.screenHeight - 50) {
-          eng.screenHeight = (event.rawY + eng.petWidth + 100).toInt()
-          eng.groundY = (eng.screenHeight - eng.petWidth - (52 * density).toInt()).toFloat()
+        if (!isDraggingTouch && dist >= 24) {
+          isDraggingTouch = true
+          eng.onStartDrag(initialPetX.toFloat(), initialPetY.toFloat())
         }
 
-        eng.onDragMove(initialPetX + dx, initialPetY + dy)
-        params.x = eng.x.toInt()
-        params.y = eng.y.toInt()
-
-        try {
-          if (petView?.isAttachedToWindow == true) {
-            windowManager?.updateViewLayout(petView, params)
+        if (isDraggingTouch) {
+          if (event.rawX > eng.screenWidth - 50) {
+            eng.screenWidth = (event.rawX + eng.petWidth + 100).toInt()
           }
-        } catch (e: Exception) {}
+          if (event.rawY > eng.screenHeight - 50) {
+            eng.screenHeight = (event.rawY + eng.petWidth + 100).toInt()
+            eng.groundY = (eng.screenHeight - eng.petWidth - (52 * density).toInt()).toFloat()
+          }
+
+          eng.onDragMove(initialPetX + dx, initialPetY + dy)
+          params.x = eng.x.toInt()
+          params.y = eng.y.toInt()
+
+          try {
+            if (petView?.isAttachedToWindow == true) {
+              windowManager?.updateViewLayout(petView, params)
+            }
+          } catch (e: Exception) {}
+        }
 
         lastMoveX = event.rawX
         lastMoveY = event.rawY
@@ -748,19 +750,29 @@ class FloatingPetService : Service() {
           (event.rawY - touchDownY).toDouble()
         )
 
-        if (duration < 300 && dist < 24) {
+        if (!isDraggingTouch && duration < 350 && dist < 24) {
           // Quick Tap! Toggles the Usage & Quota HUD and pokes pet
           eng.onPoke()
           if (System.currentTimeMillis() - lastHudDismissTime > 350L) {
             toggleHud()
           }
-        } else {
+        } else if (isDraggingTouch || eng.currentState == PetState.DRAGGING) {
           val tossVx = (event.rawX - lastMoveX) * 0.4f
           val tossVy = (event.rawY - lastMoveY) * 0.4f
           eng.onRelease(tossVx, tossVy)
         }
+        isDraggingTouch = false
 
-        petView?.updateAnimation(eng.currentState, eng.direction, 0, tickCount, currentUsage.activePrimaryUsedPercent)
+        petView?.updateAnimation(eng.currentState, eng.direction, eng.animFrame, tickCount, currentUsage.activePrimaryUsedPercent)
+        return true
+      }
+
+      MotionEvent.ACTION_CANCEL -> {
+        if (isDraggingTouch || eng.currentState == PetState.DRAGGING) {
+          eng.onRelease(0f, 0f)
+        }
+        isDraggingTouch = false
+        petView?.updateAnimation(eng.currentState, eng.direction, eng.animFrame, tickCount, currentUsage.activePrimaryUsedPercent)
         return true
       }
     }
