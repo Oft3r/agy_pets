@@ -3,7 +3,7 @@
 > **Official Pixel Art Desktop Mascot & Live AI Quota Companion for GoogleBook OS (Android Laptop)**  
 > Inspired by classic desktop Shimeji companions and [`clawd-usage-gnome`](https://github.com/Oft3r/clawd-usage-gnome).
 
-![AntiGravity Pets Banner](app/src/main/res/mipmap-xxxhdpi/ic_launcher.png)
+![AntiGravity Pets Banner](app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp)
 
 ---
 
