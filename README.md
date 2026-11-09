@@ -7,6 +7,20 @@
 
 ---
 
+## 📸 Live Demo & Screenshots
+
+### 🎬 Full Interactive Walkthrough
+![AntiGravity Pets Live Demo](docs/media/demo.gif)
+
+> 💡 *Also available in [high-efficiency MP4 video (`docs/media/demo.mp4`)](docs/media/demo.mp4).*
+
+| Anchored Quota HUD & Context Window | Zero-Gravity Toss & Working Aura | Black Hole Spaghettification |
+|:---:|:---:|:---:|
+| ![Quota HUD](docs/media/screenshot_hud.png) | ![Mascot Physics](docs/media/screenshot_mascot.png) | ![Black Hole Transition](docs/media/screenshot_blackhole.png) |
+| *Real-time breakdown of Gemini, Argon & Claude/GPT pools* | *50-pixel mascot floating with pulsing cyan/violet beacons* | *Cosmic accretion disk & tidal spaghettification on window exit/enter* |
+
+---
+
 ## 🌟 Overview
 
 **AntiGravity Pets (`AgyPets`)** is an interactive desktop companion engineered specifically for GoogleBook OS (Android Laptop) and the Google AntiGravity IDE environment.
@@ -138,6 +152,8 @@ agy_pets/
 │   ├── sync_usage.py              # ConnectRPC client & HTTP heartbeat daemon
 │   ├── agy-sync-usage.service     # Systemd user service unit
 │   └── install.sh                 # 1-click daemon setup script
+├── docs/
+│   └── media/                     # Demo GIF, MP4 walkthrough & feature screenshots
 ├── keystore/
 │   └── release.jks                # Release signing certificate
 └── build.gradle.kts               # Top-level Gradle configuration
